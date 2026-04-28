@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMANSAKRA Football Mania</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000d1a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            box-shadow: 0 0 100px rgba(0,123,255,0.4);
+            border: 8px solid #333;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            background-color: #1a3316;
+        }
+
+        .ui-overlay {
+            position: absolute;
+            top: 25px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .score-box {
+            font-size: 28px;
+            font-weight: 900;
+            text-shadow: 0 0 10px rgba(0,0,0,1);
+            padding: 12px 25px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 12px;
+            border-bottom: 4px solid currentColor;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        #timer-display {
+            font-size: 36px;
+            background: rgba(0,0,0,0.8);
+            padding: 8px 35px;
+            border-radius: 0 0 20px 20px;
+            border: 3px solid #ffcc00;
+            border-top: none;
+            color: #ffcc00;
+            font-family: 'Courier New', Courier, monospace;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+
+        .full-screen-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #004085 0%, #000d1a 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            text-align: center;
+        }
+
+        /* Animasi Versus */
+        #vs-screen {
+            display: none;
+            background: rgba(0, 0, 0, 0.9);
+            overflow: hidden;
+        }
+
+        .vs-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .vs-team {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.5s ease-out;
+        }
+
+        .team-arema { transform: translateX(-100%); color: #00d4ff; }
+        .team-fcb { transform: translateX(100%); color: #a70042; }
+
+        .vs-text {
+            font-size: 150px;
+            font-weight: 900;
+            color: #ffcc00;
+            text-shadow: 0 0 50px #ffcc00;
+            opacity: 0;
+            transform: scale(3);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 105;
+        }
+
+        #vs-screen.animate .team-arema { transform: translateX(0); }
+        #vs-screen.animate .team-fcb { transform: translateX(0); }
+        #vs-screen.animate .vs-text { opacity: 1; transform: scale(1); }
+
+        .team-logo-big {
+            font-size: 120px;
+            margin-bottom: 20px;
+        }
+
+        .team-name-big {
+            font-size: 40px;
+            font-weight: 900;
+            letter-spacing: 5px;
+        }
+
+        .flash-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 110;
+        }
+
+        .bg-deco {
+            position: absolute;
+            width: 150%;
+            height: 150%;
+            background-image: 
+                linear-gradient(45deg, rgba(0, 212, 255, 0.07) 25%, transparent 25%),
+                linear-gradient(-45deg, rgba(0, 212, 255, 0.07) 25%, transparent 25%);
+            background-size: 80px 80px;
+            z-index: -1;
+            animation: moveBg 30s linear infinite;
+        }
+
+        @keyframes moveBg {
+            from { transform: translate(-5%, -5%); }
+            to { transform: translate(0, 0); }
+        }
+
+        .title-frame {
+            border-top: 4px solid #00d4ff;
+            border-bottom: 4px solid #00d4ff;
+            padding: 30px 80px;
+            margin-bottom: 25px;
+            position: relative;
+            background: rgba(0, 212, 255, 0.15);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
+        }
+
+        .title-frame::before, .title-frame::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 20px;
+            height: 20px;
+            background: #00d4ff;
+            transform: translateY(-50%) rotate(45deg);
+        }
+        .title-frame::before { left: -10px; }
+        .title-frame::after { right: -10px; }
+
+        h1 {
+            font-size: 70px;
+            margin: 0;
+            color: #00d4ff;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.8), 0 0 40px rgba(0, 212, 255, 0.5);
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .sub-title {
+            font-size: 22px;
+            color: #fff;
+            letter-spacing: 6px;
+            margin-bottom: 50px;
+            font-weight: 600;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px #00d4ff;
+        }
+
+        .victory-text {
+            animation: victoryPulse 1.5s ease-in-out infinite alternate;
+            display: inline-block;
+        }
+
+        @keyframes victoryPulse {
+            from { transform: scale(1); text-shadow: 0 0 20px currentColor; }
+            to { transform: scale(1.15); text-shadow: 0 0 50px currentColor, 0 0 100px currentColor; }
+        }
+
+        .action-btn {
+            padding: 20px 60px;
+            font-size: 20px;
+            background: #00d4ff;
+            color: #001a33;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 900;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            box-shadow: 0 10px 0 #0099bb;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 0 #0099bb;
+            filter: brightness(1.1);
+        }
+
+        .action-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 3px 0 #0099bb;
+        }
+
+        .creator-text {
+            position: absolute;
+            bottom: 40px;
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+
+        .creator-text b { color: #00d4ff; }
+
+        .controls-hint {
+            margin-top: 30px;
+            display: flex;
+            gap: 50px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px 35px;
+            border-radius: 40px;
+            border: 2px solid #333;
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-weight: bold;
+        }
+
+        .color-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 6px;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        #announcement {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: 100px;
+            color: #fff;
+            font-weight: 900;
+            text-shadow: 0 0 50px rgba(0,0,0,0.8);
+            z-index: 20;
+            pointer-events: none;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-align: center;
+        }
+
+        #announcement.show { transform: translate(-50%, -50%) scale(1); }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- Layar Opening Bersih -->
+        <div id="opening-screen" class="full-screen-overlay">
+            <div class="bg-deco"></div>
+            
+            <div class="title-frame">
+                <h1>SMANSAKRA FOOTBALL MANIA</h1>
+            </div>
+            
+            <div class="sub-title">SEMANGAT JUARA • SALAM SATU JIWA</div>
+
+            <button class="action-btn" onclick="triggerVSAnimation()">Mulai Pertandingan</button>
+            <div class="creator-text">Diciptakan oleh: <b>putra azil oktazian</b></div>
+        </div>
+
+        <!-- Layar Animasi VS -->
+        <div id="vs-screen" class="full-screen-overlay">
+            <div class="flash-effect" id="flash-overlay"></div>
+            <div class="vs-container">
+                <div class="vs-team team-arema">
+                    <div class="team-logo-big">🦁</div>
+                    <div class="team-name-big">SMANSAKRA FC</div>
+                </div>
+                <div class="vs-text">VS</div>
+                <div class="vs-team team-fcb">
+                    <div class="team-logo-big">⚽</div>
+                    <div class="team-name-big">BARCELONA</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Layar Game Over / Kemenangan -->
+        <div id="game-over-screen" class="full-screen-overlay" style="display: none;">
+            <div class="bg-deco"></div>
+            <h1 style="font-size: 50px; color: #ffcc00;">PRRRIIIITT! PERTANDINGAN SELESAI</h1>
+            <div id="winner-text" class="sub-title victory-text" style="margin-top: 30px; font-size: 40px;">SMANSAKRA FC MENANG!</div>
+            <div id="final-score" style="font-size: 80px; font-weight: bold; margin-bottom: 40px; text-shadow: 0 0 20px rgba(255,255,255,0.5);">3 - 1</div>
+            <button class="action-btn" onclick="restartGame()">Main Lagi</button>
+            <div class="creator-text">Diciptakan oleh: <b>putra azil oktazian</b></div>
+        </div>
+
+        <div class="ui-overlay">
+            <div class="score-box" style="color: #00d4ff; border-color: #00d4ff;">SMANSAKRA: <span id="score1">0</span></div>
+            <div id="timer-display">02:00</div>
+            <div class="score-box" style="color: #a70042; border-color: #a70042;">FCB: <span id="score2">0</span></div>
+        </div>
+
+        <div id="announcement">
+            <span style="font-size: 40px; display: block; margin-bottom: -20px; text-transform: uppercase;" id="announce-type">GOOOOOL!!!</span>
+            <span id="announce-team">SMANSAKRA FC</span>
+        </div>
+        <canvas id="footballCanvas"></canvas>
+    </div>
+
+    <div class="controls-hint">
+        <div class="player-info">
+            <div class="color-box" style="background: #00d4ff;"></div>
+            <span>P1: WASD + E</span>
+        </div>
+        <div class="player-info">
+            <div class="color-box" style="background: #a70042;"></div>
+            <span>P2: PANAH + ENTER</span>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('footballCanvas');
+        const ctx = canvas.getContext('2d');
+        const announcement = document.getElementById('announcement');
+        const announceType = document.getElementById('announce-type');
+        const announceTeam = document.getElementById('announce-team');
+        const openingScreen = document.getElementById('opening-screen');
+        const vsScreen = document.getElementById('vs-screen');
+        const flashOverlay = document.getElementById('flash-overlay');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const timerDisplay = document.getElementById('timer-display');
+        const winnerText = document.getElementById('winner-text');
+        const finalScoreText = document.getElementById('final-score');
+
+        canvas.width = 1100; 
+        canvas.height = 700;
+
+        const pitchWidth = 1000;
+        const pitchHeight = 600;
+        const pitchOffsetX = 50;
+        const pitchOffsetY = 50;
+
+        let score1 = 0;
+        let score2 = 0;
+        let isPaused = false;
+        let screenShake = 0;
+        let gameActive = false;
+        let timeLeft = 120;
+        let timerInterval;
+
+        const keys = {};
+        let particles = [];
+        let flashes = [];
+
+        function triggerVSAnimation() {
+            openingScreen.style.display = 'none';
+            vsScreen.style.display = 'flex';
+            
+            setTimeout(() => {
+                vsScreen.classList.add('animate');
+                setTimeout(() => {
+                    flashOverlay.style.opacity = '1';
+                    setTimeout(() => flashOverlay.style.opacity = '0', 100);
+                }, 500);
+                setTimeout(() => {
+                    vsScreen.style.display = 'none';
+                    vsScreen.classList.remove('animate');
+                    startGame();
+                }, 2500);
+            }, 100);
+        }
+
+        function startGame() {
+            openingScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            gameActive = true;
+            score1 = 0;
+            score2 = 0;
+            timeLeft = 120;
+            updateScoreUI();
+            resetPositions();
+            startTimer();
+        }
+
+        function restartGame() {
+            triggerVSAnimation();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (gameActive && !isPaused) {
+                    timeLeft--;
+                    updateTimerUI();
+                    if (timeLeft <= 0) endGame();
+                }
+            }, 1000);
+        }
+
+        function updateTimerUI() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDisplay.innerText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function updateScoreUI() {
+            document.getElementById('score1').innerText = score1;
+            document.getElementById('score2').innerText = score2;
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(timerInterval);
+            
+            const victoryColor = score1 > score2 ? "#00d4ff" : (score2 > score1 ? "#a70042" : "#ffcc00");
+            
+            for(let i=0; i<10; i++) {
+                setTimeout(() => {
+                    createConfettiAt(Math.random() * canvas.width, Math.random() * canvas.height, victoryColor);
+                    createConfettiAt(Math.random() * canvas.width, Math.random() * canvas.height, "#ffffff");
+                    createConfettiAt(Math.random() * canvas.width, Math.random() * canvas.height, "#ffcc00");
+                    screenShake = 15;
+                }, i * 200);
+            }
+
+            setTimeout(() => {
+                gameOverScreen.style.display = 'flex';
+                if (score1 > score2) {
+                    winnerText.innerText = "SMANSAKRA FC JUARA!";
+                    winnerText.style.color = "#00d4ff";
+                } else if (score2 > score1) {
+                    winnerText.innerText = "FC BARCELONA JUARA!";
+                    winnerText.style.color = "#a70042";
+                } else {
+                    winnerText.innerText = "HASIL SERI!";
+                    winnerText.style.color = "#ffcc00";
+                    winnerText.classList.remove('victory-text');
+                }
+                finalScoreText.innerText = `${score1} - ${score2}`;
+            }, 2000);
+        }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y; this.color = color;
+                this.size = Math.random() * 10 + 5;
+                this.speedX = (Math.random() - 0.5) * 25;
+                this.speedY = (Math.random() - 0.5) * 25 - 5;
+                this.gravity = 0.2; this.life = 1.0;
+                this.decay = Math.random() * 0.015 + 0.005;
+            }
+            update() {
+                this.x += this.speedX; this.y += this.speedY;
+                this.speedY += this.gravity; this.life -= this.decay;
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.life * 15);
+                ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+                ctx.restore();
+            }
+        }
+
+        class Player {
+            constructor(x, y, club, colors, id) {
+                this.startX = x + pitchOffsetX; this.startY = y + pitchOffsetY;
+                this.x = this.startX; this.y = this.startY; this.radius = 24;
+                this.club = club; this.colors = colors;
+                this.speed = 4.8; this.id = id;
+                this.velX = 0; this.velY = 0;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.ellipse(this.x, this.y + 20, this.radius, 12, 0, 0, Math.PI * 2);
+                ctx.fillStyle = "rgba(0,0,0,0.3)";
+                ctx.fill();
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.clip();
+                ctx.fillStyle = this.colors[0];
+                ctx.fill();
+                if (this.club === "FCB") {
+                    ctx.fillStyle = this.colors[1];
+                    for(let i=-2; i<3; i++) ctx.fillRect(this.x + (i*12) - 4, this.y - this.radius, 8, this.radius * 2);
+                } else if (this.club === "SMANSAKRA") {
+                    ctx.fillStyle = "#ffffff"; 
+                    ctx.beginPath(); ctx.arc(this.x, this.y, 8, 0, Math.PI*2); ctx.fill();
+                }
+                ctx.restore();
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = this.colors[2]; ctx.lineWidth = 4; ctx.stroke();
+                ctx.fillStyle = "white"; ctx.font = "bold 10px 'Trebuchet MS'";
+                ctx.textAlign = "center"; ctx.fillText(this.club, this.x, this.y + 4);
+            }
+            update() {
+                if (this.id === 1) {
+                    if (keys['w'] || keys['W']) this.velY = -this.speed;
+                    else if (keys['s'] || keys['S']) this.velY = this.speed;
+                    else this.velY *= 0.85;
+                    if (keys['a'] || keys['A']) this.velX = -this.speed;
+                    else if (keys['d'] || keys['D']) this.velX = this.speed;
+                    else this.velX *= 0.85;
+                } else {
+                    if (keys['ArrowUp']) this.velY = -this.speed;
+                    else if (keys['ArrowDown']) this.velY = this.speed;
+                    else this.velY *= 0.85;
+                    if (keys['ArrowLeft']) this.velX = -this.speed;
+                    else if (keys['ArrowRight']) this.velX = this.speed;
+                    else this.velX *= 0.85;
+                }
+                this.x += this.velX; this.y += this.velY;
+                if (this.x < pitchOffsetX + this.radius) this.x = pitchOffsetX + this.radius;
+                if (this.x > pitchOffsetX + pitchWidth - this.radius) this.x = pitchOffsetX + pitchWidth - this.radius;
+                if (this.y < pitchOffsetY + this.radius) this.y = pitchOffsetY + pitchHeight - this.radius;
+                if (this.y > pitchOffsetY + pitchHeight - this.radius) this.y = pitchOffsetY + pitchHeight - this.radius;
+            }
+            reset() { this.x = this.startX; this.y = this.startY; this.velX = 0; this.velY = 0; }
+        }
+
+        class Ball {
+            constructor() { this.reset(); this.rotation = 0; }
+            draw() {
+                ctx.beginPath();
+                ctx.ellipse(this.x, this.y + 12, 14, 7, 0, 0, Math.PI * 2);
+                ctx.fillStyle = "rgba(0,0,0,0.4)";
+                ctx.fill();
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.beginPath(); ctx.arc(0, 0, 13, 0, Math.PI * 2);
+                ctx.fillStyle = "white"; ctx.fill();
+                ctx.strokeStyle = "#ddd"; ctx.lineWidth = 1; ctx.stroke();
+                const colors = ["#232a5e", "#e31d25", "#fbb034", "#00adef"];
+                for (let i = 0; i < 3; i++) {
+                    ctx.save(); ctx.rotate((i * Math.PI * 2) / 3);
+                    ctx.beginPath(); ctx.moveTo(2, -12);
+                    ctx.quadraticCurveTo(8, -6, 2, 0); ctx.quadraticCurveTo(-4, -6, 2, -12);
+                    ctx.fillStyle = colors[i % colors.length]; ctx.fill(); ctx.restore();
+                }
+                ctx.restore();
+            }
+            update() {
+                this.x += this.velX; this.y += this.velY;
+                this.rotation += (this.velX + this.velY) * 0.05;
+                this.velX *= 0.992; this.velY *= 0.992;
+                
+                const fieldL = pitchOffsetX; const fieldR = pitchOffsetX + pitchWidth;
+                const fieldT = pitchOffsetY; const fieldB = pitchOffsetY + pitchHeight;
+
+                if (this.y < fieldT + 13 || this.y > fieldB - 13) triggerOut();
+                if (this.x < fieldL + 13) {
+                    if (this.y > canvas.height/2 - 80 && this.y < canvas.height/2 + 80) goalScored(2);
+                    else triggerOut();
+                }
+                if (this.x > fieldR - 13) {
+                    if (this.y > canvas.height/2 - 80 && this.y < canvas.height/2 + 80) goalScored(1);
+                    else triggerOut();
+                }
+            }
+            reset() { this.x = canvas.width / 2; this.y = canvas.height / 2; this.velX = 0; this.velY = 0; this.rotation = 0; }
+        }
+
+        const p1 = new Player(180, 300, "SMANSAKRA", ["#00d4ff", "#00d4ff", "#ffffff"], 1);
+        const p2 = new Player(820, 300, "FCB", ["#a70042", "#004d98", "#edbb00"], 2);
+        const ball = new Ball();
+
+        function drawStadium() {
+            ctx.fillStyle = "#000d1a";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for(let i=0; i<400; i++) {
+                let rx = Math.random() * canvas.width;
+                let ry = Math.random() * canvas.height;
+                if(rx < pitchOffsetX || rx > pitchOffsetX+pitchWidth || ry < pitchOffsetY || ry > pitchOffsetY+pitchHeight) {
+                    ctx.fillStyle = Math.random() > 0.5 ? "#222" : (Math.random() > 0.5 ? "#003366" : "#444");
+                    ctx.beginPath(); ctx.arc(rx, ry, 2, 0, Math.PI*2); ctx.fill();
+                }
+            }
+
+            ctx.fillStyle = "#222";
+            ctx.fillRect(pitchOffsetX-10, pitchOffsetY-35, pitchWidth+20, 30);
+            ctx.fillRect(pitchOffsetX-10, pitchOffsetY+pitchHeight+5, pitchWidth+20, 30);
+            
+            ctx.fillStyle = "#00d4ff";
+            ctx.font = "bold 14px Arial"; ctx.textAlign = "center";
+            for(let i=0; i<5; i++) {
+                let xPos = pitchOffsetX + (i * pitchWidth/4.5) + 50;
+                ctx.fillText("SMANSAKRA FOOTBALL MANIA", xPos, pitchOffsetY - 15);
+                ctx.fillText("SEMANGAT JUARA - PUTRA AZIL OKTAZIAN", xPos, pitchOffsetY + pitchHeight + 25);
+            }
+
+            const corners = [[pitchOffsetX, pitchOffsetY], [pitchOffsetX+pitchWidth, pitchOffsetY], [pitchOffsetX, pitchOffsetY+pitchHeight], [pitchOffsetX+pitchWidth, pitchOffsetY+pitchHeight]];
+            corners.forEach(c => {
+                ctx.strokeStyle = "#00d4ff"; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.lineTo(c[0], c[1]-15); ctx.stroke();
+                ctx.fillStyle = "red"; ctx.beginPath(); ctx.moveTo(c[0], c[1]-15); ctx.lineTo(c[0]+8, c[1]-11); ctx.lineTo(c[0], c[1]-7); ctx.fill();
+            });
+
+            const lightGradient = ctx.createRadialGradient(0,0,0, 0,0,150);
+            lightGradient.addColorStop(0, "rgba(0,212,255,0.1)");
+            lightGradient.addColorStop(1, "rgba(0,212,255,0)");
+            ctx.save(); ctx.fillStyle = lightGradient;
+            ctx.translate(0,0); ctx.fillRect(0,0,200,200);
+            ctx.translate(canvas.width,0); ctx.fillRect(-200,0,200,200);
+            ctx.translate(0,canvas.height); ctx.fillRect(-200,-200,200,200);
+            ctx.translate(-canvas.width,0); ctx.fillRect(0,-200,200,200);
+            ctx.restore();
+        }
+
+        function drawPitch() {
+            ctx.save();
+            ctx.translate(pitchOffsetX, pitchOffsetY);
+            for(let i=0; i<12; i++) {
+                ctx.fillStyle = i % 2 === 0 ? "#2d5a27" : "#34662e";
+                ctx.fillRect(i * (pitchWidth/12), 0, pitchWidth/12, pitchHeight);
+            }
+            ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = 3;
+            ctx.strokeRect(0, 0, pitchWidth, pitchHeight);
+            ctx.beginPath(); ctx.moveTo(pitchWidth / 2, 0); ctx.lineTo(pitchWidth / 2, pitchHeight); ctx.stroke();
+            ctx.beginPath(); ctx.arc(pitchWidth / 2, pitchHeight / 2, 85, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillStyle = "rgba(255,255,255,0.7)"; ctx.beginPath(); ctx.arc(pitchWidth/2, pitchHeight/2, 5, 0, Math.PI*2); ctx.fill();
+            ctx.strokeRect(0, pitchHeight/2 - 160, 150, 320); ctx.strokeRect(pitchWidth - 150, pitchHeight/2 - 160, 150, 320);
+            ctx.lineWidth = 8; ctx.strokeStyle = "white";
+            ctx.strokeRect(-15, pitchHeight/2 - 80, 15, 160); ctx.strokeRect(pitchWidth, pitchHeight/2 - 80, 15, 160);
+            ctx.restore();
+        }
+
+        function triggerOut() {
+            if (isPaused || !gameActive) return;
+            isPaused = true;
+            announceType.innerText = "OUT!"; announceTeam.innerText = "BOLA KELUAR";
+            announceTeam.style.color = "#ccc"; announcement.classList.add('show');
+            setTimeout(() => {
+                announcement.classList.remove('show'); resetPositions(); isPaused = false;
+            }, 1000);
+        }
+
+        function goalScored(team) {
+            if (isPaused || !gameActive) return;
+            isPaused = true;
+            let teamColor;
+            announceType.innerText = "GOOOOOL!!!";
+            if (team === 1) {
+                score1++; announceTeam.innerText = "SMANSAKRA FC";
+                announceTeam.style.color = "#00d4ff"; teamColor = "#00d4ff";
+            } else {
+                score2++; announceTeam.innerText = "BARCELONA";
+                announceTeam.style.color = "#a70042"; teamColor = "#a70042";
+            }
+            updateScoreUI();
+            screenShake = 40; 
+            createConfettiAt(canvas.width/2, canvas.height/2, teamColor);
+            createConfettiAt(canvas.width/2, canvas.height/2, "#ffcc00");
+            announcement.classList.add('show');
+            setTimeout(() => {
+                announcement.classList.remove('show'); resetPositions(); isPaused = false;
+            }, 2000);
+        }
+
+        function checkCollision(player, ball) {
+            let dx = ball.x - player.x; let dy = ball.y - player.y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+            let minDist = player.radius + 13;
+            if (distance < minDist) {
+                let angle = Math.atan2(dy, dx);
+                let kickForce = 0.8;
+                let isKicking = (player.id === 1 && (keys['e'] || keys['E'])) || (player.id === 2 && keys['Enter']);
+                if (isKicking) { kickForce = 14; screenShake = 8; }
+                ball.velX = Math.cos(angle) * (player.speed + kickForce);
+                ball.velY = Math.sin(angle) * (player.speed + kickForce);
+                ball.x = player.x + Math.cos(angle) * minDist;
+                ball.y = player.y + Math.sin(angle) * minDist;
+            }
+        }
+
+        function createConfettiAt(x, y, teamColor) {
+            for(let i=0; i<80; i++) particles.push(new Particle(x, y, teamColor));
+        }
+
+        function resetPositions() { p1.reset(); p2.reset(); ball.reset(); }
+
+        function gameLoop() {
+            ctx.save();
+            if (screenShake > 0) {
+                ctx.translate((Math.random()-0.5)*screenShake, (Math.random()-0.5)*screenShake);
+                screenShake *= 0.9;
+            }
+
+            drawStadium();
+            drawPitch();
+
+            particles = particles.filter(p => p.life > 0);
+            particles.forEach(p => { p.update(); p.draw(); });
+
+            if (gameActive) {
+                if (!isPaused) {
+                    p1.update(); p2.update(); ball.update();
+                    checkCollision(p1, ball); checkCollision(p2, ball);
+                    if(Math.random() > 0.97) {
+                        flashes.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, life: 1.0 });
+                    }
+                }
+                
+                flashes = flashes.filter(f => f.life > 0);
+                flashes.forEach(f => {
+                    ctx.globalAlpha = f.life; ctx.fillStyle = "white";
+                    ctx.beginPath(); ctx.arc(f.x, f.y, 3 + Math.random()*5, 0, Math.PI*2); ctx.fill();
+                    f.life -= 0.1;
+                });
+                ctx.globalAlpha = 1.0;
+                
+                p1.draw(); p2.draw(); ball.draw();
+            } else {
+                p1.draw(); p2.draw(); ball.draw();
+            }
+            
+            ctx.restore();
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.addEventListener('keydown', (e) => keys[e.key] = true);
+        window.addEventListener('keyup', (e) => keys[e.key] = false);
+        window.onload = gameLoop;
+    </script>
+</body>
+</html>
